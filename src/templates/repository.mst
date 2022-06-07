@@ -1,0 +1,62 @@
+import { EntityRepository } from 'typeorm';
+import { BaseRepository } from 'typeorm-transactional-cls-hooked';
+
+import { {{repositoryName}} } from '../entities/{{repositoryName}}';
+
+export interface I{{repositoryName}}Repository {
+  getMany(): Promise<{{repositoryName}}[]>;
+  getManyAndCount(page: string, limit: string): Promise<[{{repositoryName}}[], number]>;
+  getById(id: string): Promise<{{repositoryName}} | undefined>;
+  create{{repositoryName}}(item: {{repositoryName}}): Promise<{{repositoryName}}>;
+  update{{repositoryName}}(item: {{repositoryName}}): Promise<{{repositoryName}}>;
+}
+
+@EntityRepository({{repositoryName}})
+export class {{repositoryName}}Repository extends BaseRepository<{{repositoryName}}> implements I{{repositoryName}}Repository {
+  public async getMany(): Promise<{{repositoryName}}[]> {
+    return await this.createQueryBuilder()
+      .select()
+      .getMany();
+  }
+
+  public async getManyAndCount(page: string, limit: string): Promise<[{{repositoryName}}[], number]> {
+    const requestedPage = Number(page);
+    const requestedLimit = Number(limit);
+
+    return await this.createQueryBuilder()
+      .select()
+      .skip(requestedPage * requestedLimit)
+      .take(requestedLimit)
+      .getManyAndCount();
+  }
+
+  public async getById(id: string): Promise<{{repositoryName}} | undefined> {
+    return await this.createQueryBuilder()
+      .select()
+      .where('id = :id', { id })
+      .getOne();
+  }
+
+  public async create{{repositoryName}}(item: {{repositoryName}}): Promise<{{repositoryName}}> {
+    const result = await this.createQueryBuilder()
+      .insert()
+      .into({{repositoryName}})
+      .values(item)
+      .execute();
+
+    item.id = result.identifiers[0].id;
+    return item;
+  }
+
+  public async update{{repositoryName}}(item: {{repositoryName}}): Promise<{{repositoryName}}> {
+    await this.createQueryBuilder()
+      .update()
+      .set({
+        ...item
+      })
+      .where('id = :id', { id: item.id })
+      .execute();
+
+    return item;
+  }
+}
