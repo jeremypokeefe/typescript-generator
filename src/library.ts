@@ -10,6 +10,7 @@ export { Index } from "./models/Index";
 export { Relation } from "./models/Relation";
 export { RelationId } from "./models/RelationId";
 export { Repository } from "./models/Repository";
+export { Type } from "./models/Type";
 
 export {
     Engine,

@@ -12,6 +12,7 @@ import modelCustomizationPhase from "./ModelCustomization";
 import modelGenerationPhase from "./ModelGeneration";
 import { Entity } from "./models/Entity";
 import repositoryGenerationPhase from "./RepositoryGeneration";
+import typeGenerationPhase from "./TypeGeneration";
 
 export function createDriver(driverName: string): AbstractDriver {
     switch (driverName) {
@@ -56,6 +57,31 @@ export async function createModelFromDatabase(
         driver.defaultValues
     );
     modelGenerationPhase(connectionOptions, generationOptions, dbModel);
+}
+
+export async function createTypeFromDatabase(
+    driver: AbstractDriver,
+    connectionOptions: IConnectionOptions,
+    generationOptions: IGenerationOptions
+): Promise<void> {
+    let dbModel = await dataCollectionPhase(
+        driver,
+        connectionOptions,
+        generationOptions
+    );
+    if (dbModel.length === 0) {
+        TomgUtils.LogError(
+            "Tables not found in selected database. Skipping creation of typeorm type.",
+            false
+        );
+        return;
+    }
+    dbModel = modelCustomizationPhase(
+        dbModel,
+        generationOptions,
+        driver.defaultValues
+    );
+    typeGenerationPhase(connectionOptions, generationOptions, dbModel);
 }
 
 export async function createRepositoryFromDatabase(

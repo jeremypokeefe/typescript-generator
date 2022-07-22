@@ -5,6 +5,8 @@ export type Repository = {
     database?: string;
     schema?: string;
     repositoryName?: string;
+    injectedName?: string;
+    routeName?: string;
 
     // TODO: move to sub-object or use handlebars helpers(?)
     fileName: string;

@@ -104,22 +104,32 @@ export default class MysqlDriver extends AbstractDriver {
                 .filter((filterVal) => filterVal.TABLE_NAME === ent.tscName)
                 .forEach((resp) => {
                     const tscName = resp.COLUMN_NAME;
+
                     let tscType = "";
+
                     const options: Column["options"] = {
                         name: resp.COLUMN_NAME,
                     };
+
                     const generated = resp.IsIdentity === 1 ? true : undefined;
+
                     const defaultValue = MysqlDriver.ReturnDefaultValueFunction(
                         resp.COLUMN_DEFAULT,
                         resp.DATA_TYPE
                     );
+
                     let columnType = resp.DATA_TYPE;
+
                     if (resp.IS_NULLABLE === "YES") options.nullable = true;
+
                     if (resp.COLUMN_KEY === "UNI") options.unique = true;
+
                     if (resp.COLUMN_COMMENT)
                         options.comment = resp.COLUMN_COMMENT;
+
                     if (resp.COLUMN_TYPE.endsWith(" unsigned"))
                         options.unsigned = true;
+
                     switch (resp.DATA_TYPE) {
                         case "int":
                             tscType = "number";
@@ -301,6 +311,23 @@ export default class MysqlDriver extends AbstractDriver {
                             resp.CHARACTER_MAXIMUM_LENGTH > 0
                                 ? resp.CHARACTER_MAXIMUM_LENGTH
                                 : undefined;
+                    }
+
+                    switch (tscType) {
+                        case "string":
+                            options.isString = true;
+                            break;
+                        case "number":
+                            options.isNumber = true;
+                            break;
+                        case "Date":
+                            options.isDate = true;
+                            break;
+                        case "boolean":
+                            options.isBoolean = true;
+                            break;
+                        default:
+                            break;
                     }
 
                     ent.columns.push({

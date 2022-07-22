@@ -32,7 +32,7 @@ export default function modelGenerationPhase(
 
         createTsConfigFile(tsconfigPath);
         createTypeOrmConfig(typeormConfigPath, connectionOptions);
-        console.log('View CHECK: ', resultPath)
+        console.log("View CHECK: ", resultPath);
         entitiesPath = path.resolve(resultPath, "./entities");
         if (!fs.existsSync(entitiesPath)) {
             fs.mkdirSync(entitiesPath);
@@ -54,10 +54,13 @@ function generateModels(
         "templates",
         "entity.mst"
     );
+
     const entityTemplate = fs.readFileSync(entityTemplatePath, "utf-8");
+
     const entityCompliedTemplate = Handlebars.compile(entityTemplate, {
         noEscape: true,
     });
+
     databaseModel.forEach((element) => {
         let casedFileName = "";
         switch (generationOptions.convertCaseFile) {
@@ -76,11 +79,14 @@ function generateModels(
             default:
                 throw new Error("Unknown case style");
         }
+
         const resultFilePath = path.resolve(
             entitiesPath,
             `${casedFileName}.ts`
         );
+
         const rendered = entityCompliedTemplate(element);
+
         const withImportStatements = removeUnusedImports(
             EOL !== eolConverter[generationOptions.convertEol]
                 ? rendered.replace(
@@ -89,7 +95,9 @@ function generateModels(
                   )
                 : rendered
         );
+
         let formatted = "";
+
         try {
             formatted = Prettier.format(withImportStatements, prettierOptions);
         } catch (error) {
@@ -97,9 +105,12 @@ function generateModels(
                 "There were some problems with model generation for table: ",
                 element.sqlName
             );
+
             console.error(error);
+
             formatted = withImportStatements;
         }
+
         fs.writeFileSync(resultFilePath, formatted, {
             encoding: "utf-8",
             flag: "w",
@@ -159,11 +170,15 @@ function removeUnusedImports(rendered: string) {
 function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
     Handlebars.registerHelper("json", (context) => {
         const json = JSON.stringify(context);
+
         const withoutQuotes = json.replace(/"([^(")"]+)":/g, "$1:");
+
         return withoutQuotes.slice(1, withoutQuotes.length - 1);
     });
+
     Handlebars.registerHelper("toEntityName", (str) => {
         let retStr = "";
+
         switch (generationOptions.convertCaseEntity) {
             case "camel":
                 retStr = changeCase.camelCase(str);
@@ -179,8 +194,10 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
         }
         return retStr;
     });
+
     Handlebars.registerHelper("toFileName", (str) => {
         let retStr = "";
+
         switch (generationOptions.convertCaseFile) {
             case "camel":
                 retStr = changeCase.camelCase(str);
@@ -199,13 +216,16 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
         }
         return retStr;
     });
+
     Handlebars.registerHelper("printPropertyVisibility", () =>
         generationOptions.propertyVisibility !== "none"
             ? `${generationOptions.propertyVisibility} `
             : ""
     );
+
     Handlebars.registerHelper("toPropertyName", (str) => {
         let retStr = "";
+
         switch (generationOptions.convertCaseProperty) {
             case "camel":
                 retStr = changeCase.camelCase(str);
@@ -224,6 +244,7 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
         }
         return retStr;
     });
+
     Handlebars.registerHelper(
         "toRelation",
         (entityType: string, relationType: Relation["relationType"]) => {
@@ -237,19 +258,23 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
             return retVal;
         }
     );
+
     Handlebars.registerHelper("defaultExport", () =>
         generationOptions.exportType === "default" ? "default" : ""
     );
+
     Handlebars.registerHelper("localImport", (entityName: string) =>
         generationOptions.exportType === "default"
             ? entityName
             : `{${entityName}}`
     );
+
     Handlebars.registerHelper("strictMode", () =>
         generationOptions.strictMode !== "none"
             ? generationOptions.strictMode
             : ""
     );
+
     Handlebars.registerHelper({
         and: (v1, v2) => v1 && v2,
         eq: (v1, v2) => v1 === v2,
@@ -281,6 +306,7 @@ function createTsConfigFile(tsconfigPath: string): void {
         flag: "w",
     });
 }
+
 function createTypeOrmConfig(
     typeormConfigPath: string,
     connectionOptions: IConnectionOptions

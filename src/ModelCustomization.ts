@@ -95,6 +95,7 @@ export default function modelCustomizationPhase(
     retVal = removeColumnDefaultProperties(retVal, defaultValues);
     return retVal;
 }
+
 function removeIndicesGeneratedByTypeorm(dbModel: Entity[]): Entity[] {
     // TODO: Support typeorm CustomNamingStrategy
     const namingStrategy = new DefaultNamingStrategy();
@@ -139,6 +140,7 @@ function removeIndicesGeneratedByTypeorm(dbModel: Entity[]): Entity[] {
     });
     return dbModel;
 }
+
 function removeColumnsInRelation(dbModel: Entity[]): Entity[] {
     dbModel.forEach((entity) => {
         entity.columns = entity.columns.filter(
@@ -153,6 +155,7 @@ function removeColumnsInRelation(dbModel: Entity[]): Entity[] {
     });
     return dbModel;
 }
+
 function removeColumnDefaultProperties(
     dbModel: Entity[],
     defaultValues: DataTypeDefaults
@@ -204,8 +207,8 @@ function findFileImports(dbModel: Entity[]) {
                     (v) => v.entityName === relation.relatedTable
                 )
             ) {
-                let relatedTable = dbModel.find(
-                    (related) => related.tscName == relation.relatedTable
+                const relatedTable = dbModel.find(
+                    (related) => related.tscName === relation.relatedTable
                 )!;
                 entity.fileImports.push({
                     entityName: relatedTable.tscName,
@@ -345,6 +348,7 @@ function applyNamingStrategy(
         });
         return model;
     }
+
     function changeEntityNames(entities: Entity[]): Entity[] {
         entities.forEach((entity) => {
             const newName = namingStrategy.entityName(entity.tscName, entity);
@@ -360,6 +364,7 @@ function applyNamingStrategy(
         });
         return entities;
     }
+
     function changeFileNames(entities: Entity[]): Entity[] {
         entities.forEach((entity) => {
             entity.fileName = namingStrategy.fileName(entity.fileName);

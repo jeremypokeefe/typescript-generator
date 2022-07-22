@@ -5,7 +5,12 @@ import { {{repositoryName}} } from '../entities/{{repositoryName}}';
 
 export interface I{{repositoryName}}Repository {
   getMany(): Promise<{{repositoryName}}[]>;
-  getManyAndCount(page: string, limit: string): Promise<[{{repositoryName}}[], number]>;
+  getManyPaginated(
+    page: string,
+    limit: string,
+    order?: 'ASC' | 'DESC',
+    orderBy?: string,
+    ): Promise<[{{repositoryName}}[], number]>;
   getById(id: string): Promise<{{repositoryName}} | undefined>;
   create{{repositoryName}}(item: {{repositoryName}}): Promise<{{repositoryName}}>;
   update{{repositoryName}}(item: {{repositoryName}}): Promise<{{repositoryName}}>;
@@ -19,14 +24,27 @@ export class {{repositoryName}}Repository extends BaseRepository<{{repositoryNam
       .getMany();
   }
 
-  public async getManyAndCount(page: string, limit: string): Promise<[{{repositoryName}}[], number]> {
+  public async getManyPaginated(
+    page: string,
+    limit: string,
+    order?: 'ASC' | 'DESC',
+    orderBy?: string,
+  ): Promise<[{{repositoryName}}[], number]> {
     const requestedPage = Number(page);
     const requestedLimit = Number(limit);
+
+    const orderMap = (_orderBy?: string) => {
+      switch (_orderBy) {
+        default:
+          return 'id';
+      }
+    };
 
     return await this.createQueryBuilder()
       .select()
       .skip(requestedPage * requestedLimit)
       .take(requestedLimit)
+      .orderBy(orderMap(orderBy), order || 'DESC')
       .getManyAndCount();
   }
 

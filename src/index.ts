@@ -3,7 +3,12 @@ import fs = require("fs-extra");
 import inquirer = require("inquirer");
 import path = require("path");
 
-import { createDriver, createModelFromDatabase, createRepositoryFromDatabase } from "./Engine";
+import {
+    createDriver,
+    createModelFromDatabase,
+    createRepositoryFromDatabase,
+    createTypeFromDatabase,
+} from "./Engine";
 import * as TomgUtils from "./Utils";
 import IConnectionOptions, {
     getDefaultConnectionOptions,
@@ -11,7 +16,6 @@ import IConnectionOptions, {
 import IGenerationOptions, {
     getDefaultGenerationOptions,
 } from "./IGenerationOptions";
-
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 CliLogic();
@@ -32,24 +36,29 @@ async function CliLogic() {
         options = await useInquirer(options);
     }
     options = validateConfig(options);
+
     const driver = createDriver(options.connectionOptions.databaseType);
+
+    console.log("Driver: ", { ...driver });
+
     console.log(
         `[${new Date().toLocaleTimeString()}] Starting creation of model classes.`
     );
+
     await createModelFromDatabase(
         driver,
         options.connectionOptions,
         options.generationOptions
     );
+
     console.info(
         `[${new Date().toLocaleTimeString()}] Typeorm model classes created.`
     );
+
     console.log(
         `[${new Date().toLocaleTimeString()}] Starting creation of model repositories.`
     );
 
-    console.log('Driver: ', { ...driver });
-    
     await createRepositoryFromDatabase(
         driver,
         options.connectionOptions,
@@ -58,7 +67,21 @@ async function CliLogic() {
     console.info(
         `[${new Date().toLocaleTimeString()}] Typeorm model repositories created.`
     );
+
+    console.log(
+        `[${new Date().toLocaleTimeString()}] Starting creation of data types.`
+    );
+
+    await createTypeFromDatabase(
+        driver,
+        options.connectionOptions,
+        options.generationOptions
+    );
+    console.info(
+        `[${new Date().toLocaleTimeString()}] TypeScript data types created.`
+    );
 }
+
 function validateConfig(options: options): options {
     if (
         options.generationOptions.lazy &&
@@ -72,6 +95,7 @@ function validateConfig(options: options): options {
     }
     return options;
 }
+
 function makeDefaultConfigs() {
     const generationOptions = getDefaultGenerationOptions();
     const connectionOptions = getDefaultConnectionOptions();
@@ -80,6 +104,7 @@ function makeDefaultConfigs() {
         connectionOptions,
     };
 }
+
 function readTOMLConfig(options: options): {
     options;
     fullConfigFile: boolean;
@@ -142,6 +167,7 @@ function readTOMLConfig(options: options): {
         fullConfigFile,
     };
 }
+
 function checkYargsParameters(options: options): options {
     const { argv } = Yargs.usage(
         "Usage: typeorm-model-generator -h <host> -d <database> -p [port] -u <user> -x [password] -e [engine]\nYou can also run program without specifying any parameters."
@@ -389,6 +415,7 @@ async function useInquirer(options: options): Promise<options> {
             },
         ])
     ).engine;
+
     const driver = createDriver(options.connectionOptions.databaseType);
     if (options.connectionOptions.databaseType !== oldDatabaseType) {
         options.connectionOptions.port = driver.standardPort;
@@ -409,6 +436,7 @@ async function useInquirer(options: options): Promise<options> {
                 ])
             ).instanceName;
         }
+
         const answ = await inquirer.prompt([
             {
                 default: options.connectionOptions.host,

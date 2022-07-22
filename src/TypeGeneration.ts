@@ -3,20 +3,21 @@ import * as Prettier from "prettier";
 import * as changeCase from "change-case";
 import * as fs from "fs";
 import * as path from "path";
+import { EOL } from "os";
 import IConnectionOptions from "./IConnectionOptions";
-import IGenerationOptions from "./IGenerationOptions";
+import IGenerationOptions, { eolConverter } from "./IGenerationOptions";
+import { Entity } from "./models/Entity";
 import { Relation } from "./models/Relation";
-import { Repository } from "./models/Repository";
 
 const prettierOptions: Prettier.Options = {
     parser: "typescript",
     endOfLine: "auto",
 };
 
-export default function repositoryGenerationPhase(
+export default function typeGenerationPhase(
     connectionOptions: IConnectionOptions,
     generationOptions: IGenerationOptions,
-    databaseModel: Repository[]
+    databaseModel: Entity[]
 ): void {
     createHandlebarsHelpers(generationOptions);
 
@@ -25,56 +26,74 @@ export default function repositoryGenerationPhase(
     if (!fs.existsSync(resultPath)) {
         fs.mkdirSync(resultPath);
     }
-    let repositoriesPath = resultPath;
-    let controllersPath = resultPath;
+
+    let typesPath = resultPath;
 
     if (!generationOptions.noConfigs) {
-        repositoriesPath = path.resolve(resultPath, "./repositories");
-        controllersPath = path.resolve(resultPath, "./controllers");
+        // const tsconfigPath = path.resolve(resultPath, "tsconfig.json");
+        // const typeormConfigPath = path.resolve(resultPath, "ormconfig.json");
 
-        if (!fs.existsSync(repositoriesPath)) {
-            fs.mkdirSync(repositoriesPath);
-        }
+        // createTsConfigFile(tsconfigPath);
+        // createTypeOrmConfig(typeormConfigPath, connectionOptions);
 
-        if (!fs.existsSync(controllersPath)) {
-            fs.mkdirSync(controllersPath);
+        console.log("View CHECK: ", resultPath);
+
+        typesPath = path.resolve(resultPath, "./types");
+        if (!fs.existsSync(typesPath)) {
+            fs.mkdirSync(typesPath);
         }
     }
-
-    generateRepositories(databaseModel, generationOptions, repositoriesPath);
-    generateControllers(databaseModel, generationOptions, controllersPath);
+    if (generationOptions.indexFile) {
+        createIndexFile(databaseModel, generationOptions, typesPath);
+    }
+    generateTypes(databaseModel, generationOptions, typesPath);
 }
 
-function generateRepositories(
-    databaseModel: Repository[],
+function generateTypes(
+    databaseModel: Entity[],
     generationOptions: IGenerationOptions,
-    repositoriesPath: string
+    typesPath: string
 ) {
-    const repositoryTemplatePath = path.resolve(
-        __dirname,
-        "templates",
-        "repository.mst"
-    );
+    const typeTemplatePath = path.resolve(__dirname, "templates", "type.mst");
 
-    const repositoryTemplate = fs.readFileSync(repositoryTemplatePath, "utf-8");
+    const typeTemplate = fs.readFileSync(typeTemplatePath, "utf-8");
 
-    const repositoryCompliedTemplate = Handlebars.compile(repositoryTemplate, {
+    const typeCompiledTemplate = Handlebars.compile(typeTemplate, {
         noEscape: true,
     });
 
     databaseModel.forEach((element) => {
-        console.log("element", { ...element });
+        let casedFileName = "";
 
-        const casedFileName = changeCase.pascalCase(element.fileName);
+        switch (generationOptions.convertCaseFile) {
+            case "camel":
+                casedFileName = changeCase.camelCase(element.fileName);
+                break;
+            case "param":
+                casedFileName = changeCase.paramCase(element.fileName);
+                break;
+            case "pascal":
+                casedFileName = changeCase.pascalCase(element.fileName);
+                break;
+            case "none":
+                casedFileName = element.fileName;
+                break;
+            default:
+                throw new Error("Unknown case style");
+        }
 
-        const resultFilePath = path.resolve(
-            repositoriesPath,
-            `${casedFileName}Repository.ts`
+        const resultFilePath = path.resolve(typesPath, `${casedFileName}.ts`);
+
+        const rendered = typeCompiledTemplate(element);
+
+        const withImportStatements = removeUnusedImports(
+            EOL !== eolConverter[generationOptions.convertEol]
+                ? rendered.replace(
+                      /(\r\n|\n|\r)/gm,
+                      eolConverter[generationOptions.convertEol]
+                  )
+                : rendered
         );
-
-        element.repositoryName = casedFileName;
-
-        const rendered = repositoryCompliedTemplate(element);
 
         let formatted = "";
 
@@ -82,13 +101,13 @@ function generateRepositories(
             formatted = Prettier.format(rendered, prettierOptions);
         } catch (error) {
             console.error(
-                "There were some problems with repository generation for table: ",
+                "There were some problems with type generation for table: ",
                 element.sqlName
             );
             console.error(error);
-
-            formatted = Prettier.format(rendered, prettierOptions);
+            formatted = withImportStatements;
         }
+
         fs.writeFileSync(resultFilePath, formatted, {
             encoding: "utf-8",
             flag: "w",
@@ -96,59 +115,63 @@ function generateRepositories(
     });
 }
 
-function generateControllers(
-    databaseModel: Repository[],
+function createIndexFile(
+    databaseModel: Entity[],
     generationOptions: IGenerationOptions,
-    controllersPath: string
+    typesPath: string
 ) {
-    const controllerTemplatePath = path.resolve(
-        __dirname,
-        "templates",
-        "controller.mst"
-    );
+    const templatePath = path.resolve(__dirname, "templates", "index.mst");
+    const template = fs.readFileSync(templatePath, "utf-8");
 
-    const controllerTemplate = fs.readFileSync(controllerTemplatePath, "utf-8");
-
-    const controllerCompliedTemplate = Handlebars.compile(controllerTemplate, {
+    const compiledTemplate = Handlebars.compile(template, {
         noEscape: true,
     });
 
-    databaseModel.forEach((element) => {
-        console.log("element", { ...element });
+    const rendered = compiledTemplate({ entities: databaseModel });
+    const formatted = Prettier.format(rendered, prettierOptions);
 
-        const casedFileName = changeCase.pascalCase(element.fileName);
-        const camelCasedFileName = changeCase.camelCase(element.fileName);
-        const dashedFileName = changeCase.pathCase(element.fileName);
+    let fileName = "index";
 
-        const resultFilePath = path.resolve(
-            controllersPath,
-            `${casedFileName}Controller.ts`
-        );
+    switch (generationOptions.convertCaseFile) {
+        case "camel":
+            fileName = changeCase.camelCase(fileName);
+            break;
+        case "param":
+            fileName = changeCase.paramCase(fileName);
+            break;
+        case "pascal":
+            fileName = changeCase.pascalCase(fileName);
+            break;
+        default:
+    }
 
-        element.repositoryName = casedFileName;
-        element.injectedName = camelCasedFileName;
-        element.routeName = dashedFileName;
+    const resultFilePath = path.resolve(typesPath, `${fileName}.ts`);
 
-        const rendered = controllerCompliedTemplate(element);
-
-        let formatted = "";
-
-        try {
-            formatted = Prettier.format(rendered, prettierOptions);
-        } catch (error) {
-            console.error(
-                "There were some problems with controller generation for table: ",
-                element.sqlName
-            );
-            console.error(error);
-
-            formatted = Prettier.format(rendered, prettierOptions);
-        }
-        fs.writeFileSync(resultFilePath, formatted, {
-            encoding: "utf-8",
-            flag: "w",
-        });
+    fs.writeFileSync(resultFilePath, formatted, {
+        encoding: "utf-8",
+        flag: "w",
     });
+}
+
+function removeUnusedImports(rendered: string) {
+    const openBracketIndex = rendered.indexOf("{") + 1;
+    const closeBracketIndex = rendered.indexOf("}");
+
+    const imports = rendered
+        .substring(openBracketIndex, closeBracketIndex)
+        .split(",");
+
+    const restOfTypeDefinition = rendered.substring(closeBracketIndex);
+
+    const distinctImports = imports.filter(
+        (v) =>
+            restOfTypeDefinition.indexOf(`@${v}(`) !== -1 ||
+            (v === "BaseEntity" && restOfTypeDefinition.indexOf(v) !== -1)
+    );
+
+    return `${rendered.substring(0, openBracketIndex)}${distinctImports.join(
+        ","
+    )}${restOfTypeDefinition}`;
 }
 
 function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
@@ -236,25 +259,30 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
             if (relationType === "ManyToMany" || relationType === "OneToMany") {
                 retVal = `${retVal}[]`;
             }
+
             if (generationOptions.lazy) {
                 retVal = `Promise<${retVal}>`;
             }
             return retVal;
         }
     );
+
     Handlebars.registerHelper("defaultExport", () =>
         generationOptions.exportType === "default" ? "default" : ""
     );
+
     Handlebars.registerHelper("localImport", (entityName: string) =>
         generationOptions.exportType === "default"
             ? entityName
             : `{${entityName}}`
     );
+
     Handlebars.registerHelper("strictMode", () =>
         generationOptions.strictMode !== "none"
             ? generationOptions.strictMode
             : ""
     );
+
     Handlebars.registerHelper({
         and: (v1, v2) => v1 && v2,
         eq: (v1, v2) => v1 === v2,

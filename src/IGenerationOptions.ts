@@ -15,6 +15,7 @@ export default interface IGenerationOptions {
     activeRecord: boolean;
     generateConstructor: boolean;
     generateRepository: boolean;
+    generateType: boolean;
     customNamingStrategyPath: string;
     relationIds: boolean;
     strictMode: "none" | "?" | "!";
@@ -42,11 +43,12 @@ export function getDefaultGenerationOptions(): IGenerationOptions {
         activeRecord: true,
         generateConstructor: true,
         generateRepository: true,
+        generateType: true,
         customNamingStrategyPath: "",
         relationIds: false,
         strictMode: "none",
         skipSchema: false,
-        indexFile: false,
+        indexFile: true,
         exportType: "named",
     };
     return generationOptions;

@@ -1,0 +1,126 @@
+{{#*inline "ResponseColumns"}}
+  {{^options.isGenerated}}* @apiSuccess (entities/{{repositoryName}}) {{{tscType}}} toPropertyName{{/options.isGenerated}}
+{{/inline}}
+{{! Start of file }}
+import { Validate } from 'class-validator';
+import { Request, Response } from 'express';
+import { inject } from 'inversify';
+import {
+  BaseHttpController,
+  controller,
+  httpGet,
+  httpPost,
+  httpPut,
+  requestBody,
+  requestParam,
+  response,
+  queryParam
+} from 'inversify-express-utils';
+
+import { TYPES } from '../ioc/types';
+
+import { {{repositoryName}} } from '../entities/{{repositoryName}}';
+
+import { I{{repositoryName}}Repository } from '../repositories/{{repositoryName}}Repository';
+
+import { HTTP400Error } from '../utils/httpErrors';
+
+import { PagingResponse } from '../dto/PagingResponse';
+
+import { {{repositoryName}}Request } from '../dto/{{repositoryName}}Request';
+
+@controller('/api/{{routeName}}')
+export class {{repositoryName}}Controller extends BaseHttpController {
+  private readonly _{{injectedName}}Repository: I{{repositoryName}}Repository;
+
+  public constructor(@inject(TYPES.I{{repositoryName}}Repository) {{injectedName}}Repository: I{{repositoryName}}Repository) {
+    super();
+    this._{{injectedName}}Repository = {{injectedName}}Repository;
+  }
+
+  /**
+   * @api {get} /paginated
+   * @apiGroup {{repositoryName}}
+   * @apiDescription Get a paginated array of {{repositoryName}}
+   * @apiSuccess Array of {{repositoryName}}
+   * @apiError HTTP401Error Access Denied
+   */
+  @httpGet('/paginated/')
+  public async get{{repositoryName}}(
+    @queryParam('page') page: string,
+    @queryParam('limit') limit: string,
+    @queryParam('order') order: string,
+    @queryParam('orderBy') orderBy: string,
+    @response() res: Response
+  ) {
+    if (!page || !limit) {
+      throw new HTTP400Error('Please provide a page and limit.');
+    }
+
+    const orderDirection = order === 'asc' ? 'ASC' : 'DESC';
+
+    const [items, totalRows] = await this._{{repositoryName}}Repository.getManyPaginated(
+      page,
+      limit,
+      orderDirection,
+      orderBy,
+    );
+
+    res.send(
+      new PagingResponse({
+        items,
+        totalRows,
+        page,
+        limit
+      })
+    );
+  }
+
+  /**
+   * @api {get} /:id
+   * @apiGroup {{repositoryName}}
+   * @apiDescription Gets the {{repositoryName}} detail by id
+   * @apiSuccess (entities/{{repositoryName}})
+   * @apiError HTTP401Error Access Denied
+   */
+  @httpGet('/:id')
+  public async get{{repositoryName}}ById(@requestParam('id') id: number, @response() res: Response) {
+    const _results = await this._{{injectedName}}Repository.getById(id);
+
+    res.send(_results);
+  }
+
+  /**
+   * @api {post} /
+   * @apiGroup {{repositoryName}}
+   * @apiDescription Creates a new {{repositoryName}}
+   * @apiSuccess (entities/{{repositoryName}})
+   * @apiError HTTP401Error Access Denied
+   */
+  @httpPost('/')
+  public async create{{repositoryName}}(@requestBody() body: {{repositoryName}}Request, @response() res: Response) {
+
+    const _result = await this._{{injectedName}}Repository.create{{repositoryName}}(body);
+
+    res.send(_result);
+  }
+
+  /**
+   * @api {put} /
+   * @apiGroup {{repositoryName}}
+   * @apiDescription Updates the {{repositoryName}} record
+   * @apiSuccess (entities/{{repositoryName}})
+   * @apiError HTTP401Error Access Denied
+   */
+  @httpPut('/')
+  public async update{{repositoryName}}(@requestBody() body: {{repositoryName}}Request, @response() res: Response) {
+
+    const _updatedOn = new Date();
+
+    body.updated = _updatedOn;
+
+    const _result = await this._{{injectedName}}Repository.update{{repositoryName}}(body);
+
+    res.send(_result);
+  }
+}

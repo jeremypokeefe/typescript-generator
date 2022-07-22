@@ -1,0 +1,58 @@
+{{#*inline "TypeColumns"}}
+{{toPropertyName tscName}}{{#if options.nullable}}?{{/if}}: {{tscType}};
+{{/inline}}
+{{#*inline "InitialStateProps"}}
+  {{toPropertyName tscName}}{{#options.nullable}}?{{/options.nullable}}:  {{#if options.isString}}''{{/if}}{{#if options.isBoolean}}false{{/if}}{{#if options.isNumber}}0{{/if}}{{#if options.isDate}}new Date(){{/if}},
+{{/inline}}
+{{#*inline "SchemaProps"}}
+  {{toPropertyName tscName}}:  {{#if options.isString}}Yup.string(){{/if}}{{#if options.isBoolean}}Yup.boolean(){{/if}}{{#if options.isNumber}}Yup.number(){{/if}}{{#if options.isDate}}Yup.date(){{/if}}{{#options.nullable}}.nullable(){{/options.nullable}}{{^options.nullable}}.required('{{tscName}} is required'){{/options.nullable}},
+{{/inline}}
+{{#*inline "ThisColumns"}}
+  {{^options.isGenerated}}this.{{toPropertyName tscName}} = instance.{{toPropertyName tscName}};{{/options.isGenerated}}
+{{/inline}}
+{{#*inline "Column"}}
+{{#generated}}@PrimaryGeneratedColumn({ type:"{{type}}", {{/generated}}{{^generated}}@Column({ name: '{{options.name}}', nullable: {{#options.nullable}}true{{/options.nullable}}{{^options.nullable}}false{{/options.nullable}}{{/generated}} })
+{{printPropertyVisibility}}{{toPropertyName tscName}}{{strictMode}}:{{tscType}}{{#if options.nullable}} | null{{/if}};
+
+{{/inline}}
+{{#*inline "JoinColumnOptions"}}
+{ name: "{{name}}", referencedColumnName: "{{toPropertyName referencedColumnName}}" },
+{{/inline}}
+{{#*inline "Relation"}}
+@{{relationType}}(()=>{{toEntityName relatedTable}},{{toPropertyName relatedTable}}=>{{toPropertyName relatedTable}}.{{toPropertyName relatedField}}{{#if relationOptions}},{ {{json relationOptions}} }{{/if}})
+{{#if joinColumnOptions}}@JoinColumn([{{#joinColumnOptions}}{{> JoinColumnOptions}}{{/joinColumnOptions}}]){{/if}}
+{{#joinTableOptions}}@JoinTable({ name:"{{name}}", joinColumns:[{{#joinColumns}}{{> JoinColumnOptions}}{{/joinColumns}}],inverseJoinColumns:[{{#inverseJoinColumns}}{{> JoinColumnOptions}}{{/inverseJoinColumns}}],{{#database}}database:"{{.}}",{{/database}}{{#schema}}schema:"{{.}}"{{/schema}} }){{/joinTableOptions}}
+{{printPropertyVisibility}}{{toPropertyName fieldName}}{{strictMode}}:{{toRelation (toEntityName relatedTable) relationType}};
+
+{{/inline}}
+{{#*inline "RelationId"}}
+@RelationId(({{toPropertyName entityName}}:{{toEntityName entityName}})=>{{toPropertyName entityName}}.{{toPropertyName relationField}})
+{{printPropertyVisibility}}{{toPropertyName fieldName}}{{strictMode}}:{{fieldType}};
+
+{{/inline}}
+{{#*inline "Interface"}}
+type {{toEntityName tscName}}FormInput = {
+{{#columns}}{{> TypeColumns}}{{/columns~}}
+};
+
+export default {{toEntityName tscName}}FormInput;
+
+{{/inline}}
+{{#*inline "InitialState"}}
+export const INITIAL_FORM_STATE: {{toEntityName tscName}}FormInput = {
+  {{#columns}}{{> InitialStateProps}}{{/columns~}}
+};
+
+{{/inline}}
+{{#*inline "Validation"}}
+const validationSchema = Yup.object().shape({
+  {{#columns}}{{> SchemaProps}}{{/columns~}}
+})
+
+{{/inline}}
+{{! Start of file }}
+{{> Interface}}
+
+{{> InitialState}}
+
+{{> Validation}}
