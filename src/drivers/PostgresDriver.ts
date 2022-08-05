@@ -206,7 +206,9 @@ export default class PostgresDriver extends AbstractDriver {
                                 : undefined;
                     }
 
-                    if (this.ColumnTypesWithWidth.some((v) => v === columnType)) {
+                    if (
+                        this.ColumnTypesWithWidth.some((v) => v === columnType)
+                    ) {
                         options.width =
                             resp.character_maximum_length > 0
                                 ? resp.character_maximum_length
@@ -467,17 +469,17 @@ export default class PostgresDriver extends AbstractDriver {
                 break;
         }
 
-        switch (ret.tsType)  {
-            case 'number':
+        switch (ret.tsType) {
+            case "number":
                 ret.isNumber = true;
                 break;
-            case 'string':
+            case "string":
                 ret.isString = true;
                 break;
-            case 'Date':
+            case "Date":
                 ret.isDate = true;
                 break;
-            case 'boolean':
+            case "boolean":
                 ret.isBoolean = true;
                 break;
             default:
