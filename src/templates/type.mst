@@ -2,7 +2,7 @@
 {{toPropertyName tscName}}{{#if options.nullable}}?{{/if}}: {{tscType}};
 {{/inline}}
 {{#*inline "InitialStateProps"}}
-  {{toPropertyName tscName}}{{#options.nullable}}?{{/options.nullable}}:  {{#if options.isString}}''{{/if}}{{#if options.isBoolean}}false{{/if}}{{#if options.isNumber}}0{{/if}}{{#if options.isDate}}new Date(){{/if}},
+  {{toPropertyName tscName}}: defaultValues?.{{toPropertyName tscName}} || {{#if options.isString}}''{{/if}}{{#if options.isBoolean}}false{{/if}}{{#if options.isNumber}}0{{/if}}{{#if options.isDate}}new Date(){{/if}},
 {{/inline}}
 {{#*inline "SchemaProps"}}
   {{toPropertyName tscName}}:  {{#if options.isString}}Yup.string(){{/if}}{{#if options.isBoolean}}Yup.boolean(){{/if}}{{#if options.isNumber}}Yup.number(){{/if}}{{#if options.isDate}}Yup.date(){{/if}}{{#options.nullable}}.nullable(){{/options.nullable}}{{^options.nullable}}.required('{{tscName}} is required'){{/options.nullable}},
